@@ -46,6 +46,7 @@ int main(int argc, char *argv[]) {
         });
 
         boost::system::error_code ec;
+        // if (server.listen_and_serve(ec, tls, "localhost", "8080", true)) {
         if (server.listen_and_serve(ec, tls, "localhost", "8080")) {
             cerr << "Failed to start server: " << ec.message() << endl;
             return 1;
