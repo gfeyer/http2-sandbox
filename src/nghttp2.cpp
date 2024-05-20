@@ -53,10 +53,6 @@ int on_header_callback(nghttp2_session *session, const nghttp2_frame *frame, con
     return 0;
 }
 
-
-
-using namespace std;
-
 // Callback to handle frame reception
 int on_frame_recv_callback(nghttp2_session *session, const nghttp2_frame *frame, void *user_data) {
     cout << "Received frame: ";
