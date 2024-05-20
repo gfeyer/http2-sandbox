@@ -7,7 +7,6 @@ using boost::asio::ip::tcp;
 namespace asio = boost::asio;
 using namespace std;
 
-// Correct recv_callback to match expected nghttp2_recv_callback signature
 ssize_t recv_callback(nghttp2_session *session, uint8_t *data, size_t length, int flags, void *user_data) {
     cout << "recv_callback()" << endl;
 }
@@ -58,7 +57,7 @@ void send_settings_frame(nghttp2_session *session) {
         return;
     }
     cout << "Sending SETTING frame with NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS: " << 100 << endl;
-    
+
     rv = nghttp2_session_send(session);
     if (rv != 0) {
         std::cerr << "Failed to send frames: " << nghttp2_strerror(rv) << std::endl;
