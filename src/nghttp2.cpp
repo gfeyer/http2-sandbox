@@ -53,10 +53,7 @@ int on_header_callback(nghttp2_session *session, const nghttp2_frame *frame, con
     return 0;
 }
 
-// Callback to handle frame reception
-#include <iostream>
-#include <nghttp2/nghttp2.h>
-#include <cstring> // For strlen
+
 
 using namespace std;
 
