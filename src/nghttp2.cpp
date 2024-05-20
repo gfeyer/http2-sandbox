@@ -224,16 +224,36 @@ void handle_client(tcp::socket socket) {
     }
 }
 
+void accept_connections(tcp::acceptor& acceptor, boost::asio::io_context& io_context) {
+    acceptor.async_accept([&](boost::system::error_code ec, tcp::socket socket) {
+        if (!ec) {
+            std::thread(&handle_client, std::move(socket)).detach();
+        }
+        accept_connections(acceptor, io_context); // Accept the next connection
+    });
+}
+
 int main() {
     try {
         asio::io_context io_context;
         tcp::acceptor acceptor(io_context, tcp::endpoint(tcp::v4(), 8080));
 
-        while (true) {
-            tcp::socket socket(io_context);
-            acceptor.accept(socket);
-            std::thread(&handle_client, std::move(socket)).detach();
+        accept_connections(acceptor, io_context);
+
+        // Create a pool of threads to run the io_context
+        std::vector<std::thread> threads;
+        for (int i = 0; i < std::thread::hardware_concurrency(); ++i) {
+            threads.emplace_back([&io_context]() {
+                io_context.run();
+            });
         }
+
+        // Wait for all threads to finish
+        for (auto& thread : threads) {
+            thread.join();
+        }
+
+
     } catch (std::exception &e) {
         std::cerr << "Exception in main(): " << e.what() << std::endl;
         return 1;
