@@ -57,7 +57,8 @@ void send_settings_frame(nghttp2_session *session) {
         std::cerr << "Session is null or not properly initialized." << std::endl;
         return;
     }
-
+    cout << "Sending SETTING frame with NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS: " << 100 << endl;
+    
     rv = nghttp2_session_send(session);
     if (rv != 0) {
         std::cerr << "Failed to send frames: " << nghttp2_strerror(rv) << std::endl;
