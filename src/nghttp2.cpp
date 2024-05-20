@@ -54,9 +54,64 @@ int on_header_callback(nghttp2_session *session, const nghttp2_frame *frame, con
 }
 
 // Callback to handle frame reception
+#include <iostream>
+#include <nghttp2/nghttp2.h>
+#include <cstring> // For strlen
+
+using namespace std;
+
+// Callback to handle frame reception
 int on_frame_recv_callback(nghttp2_session *session, const nghttp2_frame *frame, void *user_data) {
+    cout << "Received frame: ";
+
+    // Print basic frame information
+    switch (frame->hd.type) {
+        case NGHTTP2_HEADERS:
+            cout << "HEADERS";
+            break;
+        case NGHTTP2_DATA:
+            cout << "DATA";
+            break;
+        case NGHTTP2_PRIORITY:
+            cout << "PRIORITY";
+            break;
+        case NGHTTP2_RST_STREAM:
+            cout << "RST_STREAM";
+            break;
+        case NGHTTP2_SETTINGS:
+            cout << "SETTINGS";
+            break;
+        case NGHTTP2_PUSH_PROMISE:
+            cout << "PUSH_PROMISE";
+            break;
+        case NGHTTP2_PING:
+            cout << "PING";
+            break;
+        case NGHTTP2_GOAWAY:
+            cout << "GOAWAY";
+            break;
+        case NGHTTP2_WINDOW_UPDATE:
+            cout << "WINDOW_UPDATE";
+            break;
+        default:
+            cout << "UNKNOWN";
+            break;
+    }
+    cout << " frame, Stream ID: " << frame->hd.stream_id << endl;
+
     if (frame->hd.type == NGHTTP2_HEADERS && frame->headers.cat == NGHTTP2_HCAT_REQUEST) {
-        cout << "Received HEADERS frame" << endl;
+        cout << "Received HEADERS frame (request)" << endl;
+
+        // Print the headers
+        const nghttp2_nv *nva = frame->headers.nva;
+        size_t nvlen = frame->headers.nvlen;
+        for (size_t i = 0; i < nvlen; ++i) {
+            cout << "Header: ";
+            cout.write(reinterpret_cast<const char*>(nva[i].name), nva[i].namelen);
+            cout << ": ";
+            cout.write(reinterpret_cast<const char*>(nva[i].value), nva[i].valuelen);
+            cout << endl;
+        }
 
         // Prepare response
         const char* response_body = "Hello HTTP/2";
@@ -92,6 +147,7 @@ int on_frame_recv_callback(nghttp2_session *session, const nghttp2_frame *frame,
     }
     return 0;
 }
+
 
 void setup_nghttp2_session(nghttp2_session *&session, tcp::socket &socket) {
     nghttp2_session_callbacks *callbacks;
@@ -135,7 +191,20 @@ void handle_client(tcp::socket socket) {
         // Main loop to handle HTTP/2 communication
         while (socket.is_open()) {
             vector<uint8_t> buffer(4096);
-            size_t n = socket.read_some(asio::buffer(buffer));
+            boost::system::error_code ec;
+            size_t n = socket.read_some(asio::buffer(buffer), ec);
+
+            if (ec) {
+                if (ec == boost::asio::error::eof) {
+                    // Connection closed cleanly by peer.
+                    cout << "Connection closed cleanly by peer" << endl;
+                    break;
+                } else {
+                    // Some other error occurred.
+                    cerr << "read_some error: " << ec.message() << endl;
+                    break;
+                }
+            }
 
             if (n > 0) {
                 // Check for the HTTP/2 client connection preface
@@ -154,7 +223,7 @@ void handle_client(tcp::socket socket) {
         }
         nghttp2_session_del(session);
     } catch (exception &e) {
-        cerr << "Exception: " << e.what() << endl;
+        cerr << "Exception in handle_client(): " << e.what() << endl;
     }
 }
 
@@ -169,7 +238,7 @@ int main() {
             std::thread(&handle_client, std::move(socket)).detach();
         }
     } catch (std::exception &e) {
-        std::cerr << "Exception: " << e.what() << std::endl;
+        std::cerr << "Exception in main(): " << e.what() << std::endl;
         return 1;
     }
     return 0;
